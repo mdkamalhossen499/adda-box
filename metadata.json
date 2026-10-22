@@ -1,0 +1,6 @@
+{
+  "name": "আড্ডা (Adda)",
+  "description": "Bangla mobile-first group communication app with chats, audio calls, and people directory.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

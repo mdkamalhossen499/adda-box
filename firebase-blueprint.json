@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with display name, unique username ID, and presence.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Auth UID of the user." },
+        "displayName": { "type": "string", "description": "Display name of the user." },
+        "username": { "type": "string", "description": "Unique username tag without spaces." },
+        "bio": { "type": "string", "description": "Short bio description." },
+        "photoUrl": { "type": "string", "description": "Profile picture URL or avatar identifier." },
+        "isOnline": { "type": "boolean", "description": "Current presence status." },
+        "lastSeen": { "type": "string", "format": "date-time", "description": "Timestamp of last activity." },
+        "blockedUserIds": { "type": "array", "description": "List of user IDs blocked by this user." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Account update timestamp." }
+      },
+      "required": ["userId", "displayName", "username", "createdAt", "updatedAt"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "Group chat information including members and admins.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique group ID." },
+        "name": { "type": "string", "description": "Name of the group." },
+        "description": { "type": "string", "description": "Description of the group." },
+        "photoUrl": { "type": "string", "description": "Group icon URL or avatar." },
+        "creatorId": { "type": "string", "description": "User UID of group creator." },
+        "adminIds": { "type": "array", "description": "List of admin UIDs." },
+        "memberIds": { "type": "array", "description": "List of member UIDs." },
+        "isDefaultPublic": { "type": "boolean", "description": "Whether this is the default public 'সবাই' group." },
+        "lastMessage": { "type": "string", "description": "Last sent message preview." },
+        "lastMessageSenderName": { "type": "string", "description": "Sender name of the last message." },
+        "lastMessageTime": { "type": "string", "format": "date-time", "description": "Timestamp of last message." },
+        "activeCallId": { "type": "string", "description": "ID of active audio call in this group if any." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Group creation timestamp." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Group update timestamp." }
+      },
+      "required": ["id", "name", "creatorId", "adminIds", "memberIds", "createdAt", "updatedAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "1-to-1 direct chat channel between two users.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Direct chat ID combining both UIDs." },
+        "participantIds": { "type": "array", "description": "Both user UIDs." },
+        "lastMessage": { "type": "string", "description": "Last message snippet." },
+        "lastMessageSenderId": { "type": "string", "description": "UID of user who sent last message." },
+        "lastMessageTime": { "type": "string", "format": "date-time", "description": "Timestamp of last message." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Chat creation timestamp." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Chat update timestamp." }
+      },
+      "required": ["id", "participantIds", "createdAt", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Message item in a direct chat or group.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique message ID." },
+        "chatId": { "type": "string", "description": "ID of parent chat or group." },
+        "senderId": { "type": "string", "description": "UID of message author." },
+        "senderName": { "type": "string", "description": "Author display name." },
+        "senderPhoto": { "type": "string", "description": "Author avatar." },
+        "text": { "type": "string", "description": "Message text content." },
+        "imageUrl": { "type": "string", "description": "Attached image URL or base64 placeholder." },
+        "replyToMessageId": { "type": "string", "description": "ID of message being replied to." },
+        "replyToText": { "type": "string", "description": "Snippet of message being replied to." },
+        "replyToSenderName": { "type": "string", "description": "Name of original message sender." },
+        "seenBy": { "type": "array", "description": "List of user UIDs who have seen this message." },
+        "recipientIds": { "type": "array", "description": "List of member UIDs authorized to view." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Message timestamp." }
+      },
+      "required": ["id", "chatId", "senderId", "senderName", "recipientIds", "createdAt"]
+    },
+    "Call": {
+      "title": "Call",
+      "description": "Audio call session records.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Call session ID." },
+        "channelId": { "type": "string", "description": "Associated group ID or direct chat ID." },
+        "isGroup": { "type": "boolean", "description": "Whether this is a group call or 1-to-1." },
+        "title": { "type": "string", "description": "Call title or user/group name." },
+        "initiatorId": { "type": "string", "description": "UID of person starting the call." },
+        "initiatorName": { "type": "string", "description": "Name of caller." },
+        "participantIds": { "type": "array", "description": "Target participants." },
+        "activeParticipantIds": { "type": "array", "description": "Currently connected participants." },
+        "status": { "type": "string", "enum": ["ringing", "active", "ended"], "description": "Status of the call." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Start timestamp." },
+        "endedAt": { "type": "string", "format": "date-time", "description": "End timestamp." }
+      },
+      "required": ["id", "channelId", "initiatorId", "initiatorName", "participantIds", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles with presence, bio, and settings."
+    },
+    "/groups/{groupId}": {
+      "schema": { "$ref": "#/entities/Group" },
+      "description": "Stores group conversations, member lists, and active call links."
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/Chat" },
+      "description": "Stores 1-to-1 conversation metadata."
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Stores real-time message items for both direct and group conversations."
+    },
+    "/calls/{callId}": {
+      "schema": { "$ref": "#/entities/Call" },
+      "description": "Stores real-time audio call session states."
+    }
+  }
+}

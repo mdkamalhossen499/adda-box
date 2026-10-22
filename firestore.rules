@@ -1,0 +1,201 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global hardened primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Entity validation helpers
+    function isValidUser(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+             data.username is string && data.username.size() >= 2 && data.username.size() <= 40 &&
+             (!('bio' in data) || data.bio == null || (data.bio is string && data.bio.size() <= 300)) &&
+             (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 1000)) &&
+             (!('isOnline' in data) || data.isOnline is bool) &&
+             (!('lastSeen' in data) || data.lastSeen == null || (data.lastSeen is timestamp && data.lastSeen <= request.time)) &&
+             (!('blockedUserIds' in data) || (data.blockedUserIds is list && data.blockedUserIds.size() <= 100)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidGroup(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+             (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 300)) &&
+             (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 1000)) &&
+             data.creatorId is string && data.creatorId.size() <= 128 &&
+             data.adminIds is list && data.adminIds.size() >= 1 && data.adminIds.size() <= 50 &&
+             data.memberIds is list && data.memberIds.size() >= 1 && data.memberIds.size() <= 200 &&
+             (!('isDefaultPublic' in data) || data.isDefaultPublic is bool) &&
+             (!('lastMessage' in data) || data.lastMessage == null || (data.lastMessage is string && data.lastMessage.size() <= 500)) &&
+             (!('lastMessageSenderName' in data) || data.lastMessageSenderName == null || (data.lastMessageSenderName is string && data.lastMessageSenderName.size() <= 60)) &&
+             (!('lastMessageTime' in data) || data.lastMessageTime == null || (data.lastMessageTime is timestamp && data.lastMessageTime <= request.time)) &&
+             (!('activeCallId' in data) || data.activeCallId == null || (data.activeCallId is string && data.activeCallId.size() <= 128)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChat(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.participantIds is list && data.participantIds.size() >= 1 && data.participantIds.size() <= 10 &&
+             (!('lastMessage' in data) || data.lastMessage == null || (data.lastMessage is string && data.lastMessage.size() <= 500)) &&
+             (!('lastMessageSenderId' in data) || data.lastMessageSenderId == null || (data.lastMessageSenderId is string && data.lastMessageSenderId.size() <= 128)) &&
+             (!('lastMessageTime' in data) || data.lastMessageTime == null || (data.lastMessageTime is timestamp && data.lastMessageTime <= request.time)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidMessage(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.chatId is string && data.chatId.size() <= 128 &&
+             data.senderId is string && data.senderId.size() <= 128 &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 60 &&
+             (!('senderPhoto' in data) || data.senderPhoto == null || (data.senderPhoto is string && data.senderPhoto.size() <= 1000)) &&
+             (!('text' in data) || (data.text is string && data.text.size() <= 2000)) &&
+             (!('imageUrl' in data) || data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 50000)) &&
+             (!('replyToMessageId' in data) || data.replyToMessageId == null || (data.replyToMessageId is string && data.replyToMessageId.size() <= 128)) &&
+             (!('replyToText' in data) || data.replyToText == null || (data.replyToText is string && data.replyToText.size() <= 300)) &&
+             (!('replyToSenderName' in data) || data.replyToSenderName == null || (data.replyToSenderName is string && data.replyToSenderName.size() <= 60)) &&
+             (!('seenBy' in data) || (data.seenBy is list && data.seenBy.size() <= 200)) &&
+             data.recipientIds is list && data.recipientIds.size() >= 1 && data.recipientIds.size() <= 200 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidCall(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.channelId is string && data.channelId.size() <= 128 &&
+             (!('isGroup' in data) || data.isGroup is bool) &&
+             (!('title' in data) || (data.title is string && data.title.size() <= 100)) &&
+             data.initiatorId is string && data.initiatorId.size() <= 128 &&
+             data.initiatorName is string && data.initiatorName.size() >= 1 && data.initiatorName.size() <= 60 &&
+             data.participantIds is list && data.participantIds.size() >= 1 && data.participantIds.size() <= 50 &&
+             (!('activeParticipantIds' in data) || (data.activeParticipantIds is list && data.activeParticipantIds.size() <= 50)) &&
+             data.status in ['ringing', 'active', 'ended'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             (!('endedAt' in data) || data.endedAt == null || (data.endedAt is timestamp && data.endedAt <= request.time));
+    }
+
+    // 1. Users collection
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidUser(incoming());
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUser(incoming());
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 2. Groups collection
+    match /groups/{groupId} {
+      allow get: if isSignedIn() &&
+                    (resource.data.isDefaultPublic == true || request.auth.uid in resource.data.memberIds);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+                       incoming().creatorId == request.auth.uid &&
+                       (request.auth.uid in incoming().memberIds) &&
+                       (request.auth.uid in incoming().adminIds) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidGroup(incoming());
+      allow update: if isSignedIn() &&
+                       (resource.data.isDefaultPublic == true || request.auth.uid in resource.data.memberIds) &&
+                       incoming().id == existing().id &&
+                       incoming().creatorId == existing().creatorId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidGroup(incoming());
+      allow delete: if isSignedIn() &&
+                       (('creatorId' in resource.data && resource.data.creatorId == request.auth.uid) ||
+                        ('adminIds' in resource.data && request.auth.uid in resource.data.adminIds));
+    }
+
+    // 3. Direct Chats collection
+    match /chats/{chatId} {
+      allow get: if isSignedIn() &&
+                    ('participantIds' in resource.data && request.auth.uid in resource.data.participantIds);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+                       (request.auth.uid in incoming().participantIds) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidChat(incoming());
+      allow update: if isSignedIn() &&
+                       ('participantIds' in resource.data && request.auth.uid in resource.data.participantIds) &&
+                       incoming().id == existing().id &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidChat(incoming());
+      allow delete: if isSignedIn() &&
+                       ('participantIds' in resource.data && request.auth.uid in resource.data.participantIds);
+    }
+
+    // 4. Messages collection
+    match /messages/{messageId} {
+      allow get: if isSignedIn() &&
+                    (('recipientIds' in resource.data && request.auth.uid in resource.data.recipientIds) ||
+                     ('senderId' in resource.data && resource.data.senderId == request.auth.uid));
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+                       incoming().senderId == request.auth.uid &&
+                       (request.auth.uid in incoming().recipientIds) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidMessage(incoming());
+      allow update: if isSignedIn() &&
+                       (('senderId' in resource.data && resource.data.senderId == request.auth.uid) ||
+                        ('recipientIds' in resource.data && request.auth.uid in resource.data.recipientIds)) &&
+                       incoming().id == existing().id &&
+                       incoming().chatId == existing().chatId &&
+                       incoming().senderId == existing().senderId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidMessage(incoming());
+      allow delete: if isSignedIn() && ('senderId' in resource.data) && resource.data.senderId == request.auth.uid;
+    }
+
+    // 5. Calls collection
+    match /calls/{callId} {
+      allow get: if isSignedIn() &&
+                    ('participantIds' in resource.data && request.auth.uid in resource.data.participantIds);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() &&
+                       incoming().initiatorId == request.auth.uid &&
+                       (request.auth.uid in incoming().participantIds) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidCall(incoming());
+      allow update: if isSignedIn() &&
+                       ('participantIds' in resource.data && request.auth.uid in resource.data.participantIds) &&
+                       incoming().id == existing().id &&
+                       incoming().initiatorId == existing().initiatorId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidCall(incoming());
+      allow delete: if isSignedIn() && ('initiatorId' in resource.data) && resource.data.initiatorId == request.auth.uid;
+    }
+  }
+}
